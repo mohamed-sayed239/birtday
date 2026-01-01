@@ -10,25 +10,17 @@ function checkAudioSupport() {
         return false;
     }
     
-    // فحص وجود الملفات
-    console.log('📁 ملفات الصوت المطلوبة:');
-    console.log('- sounds/gift-open.mp3');
-    console.log('- sounds/celebration.mp3');
-    console.log('- sounds/تامر حسني - كل سنة وانت طيب بدون موسيقى(360P).mp4');
-    
-    // اختبار إنشاء ملف صوت
-    try {
-        const testAudio = new Audio();
-        console.log('✅ دعم Audio API: ممتاز');
-        return true;
-    } catch (error) {
-        console.error('❌ خطأ في Audio API:', error);
-        return false;
+    // فحص Web Audio API
+    if (!window.AudioContext && !window.webkitAudioContext) {
+        console.warn('⚠️ Web Audio API غير متوفر، بعض التأثيرات قد لا تعمل');
     }
+    
+    console.log('✅ دعم الصوت: جيد');
+    return true;
 }
 
 // ============================================
-// الفئة الرئيسية للتجربة
+// الفئة الرئيسية للتجربة - المحدثة
 // ============================================
 class BirthdayExperience {
     constructor() {
@@ -39,7 +31,18 @@ class BirthdayExperience {
         this.isMusicPlaying = false;
         this.isCelebrationSoundPlaying = false;
         this.celebrationTimer = null;
+        this.autoProgressTimer = null;
+        this.readingProgressTimer = null;
+        this.messageReadComplete = false;
         this.audioManager = new AudioManager();
+        this.sceneTimers = {
+            1: 5000,    // 5 ثواني
+            2: 4000,    // 4 ثواني
+            3: 0,       // انتظار تفاعل
+            4: 12000,   // 12 ثواني
+            5: 10000,   // 10 ثواني
+            6: 0        // لا تقدم تلقائي
+        };
         this.init();
     }
 
@@ -55,7 +58,7 @@ class BirthdayExperience {
         setTimeout(() => {
             this.hideLoadingScreen();
             this.startExperience();
-        }, 2000);
+        }, 2500);
     }
 
     showEnhancedLoading() {
@@ -67,29 +70,33 @@ class BirthdayExperience {
             "بيلموا البالونات 🎈",
             "بيجهزوا المفاجآت ✨",
             "بيكتبوا الرسائل 💌",
-            "بتشغّل الموسيقى 🎵"
+            "بتشغّل الموسيقى 🎵",
+            "بيجهزوا الألعاب النارية 🎆"
         ];
         
         let messageIndex = 0;
         const messageElement = document.getElementById('loadingMessage');
+        const percentageElement = document.querySelector('.loading-percentage');
         
         // تغيير الرسائل
         const messageInterval = setInterval(() => {
             messageIndex = (messageIndex + 1) % loadingMessages.length;
             messageElement.textContent = loadingMessages[messageIndex];
-        }, 1500);
+        }, 1800);
         
         // محاكاة تحميل التقدم
         let progress = 0;
         const progressInterval = setInterval(() => {
-            progress += Math.random() * 10 + 5;
+            progress += Math.random() * 8 + 7;
             if (progress >= 100) {
                 progress = 100;
                 clearInterval(progressInterval);
                 clearInterval(messageInterval);
+                messageElement.textContent = "جاهز للفرحة! 🎉";
             }
             document.getElementById('loadingProgress').style.width = `${progress}%`;
-        }, 200);
+            percentageElement.textContent = `${Math.min(100, Math.round(progress))}%`;
+        }, 150);
     }
 
     hideLoadingScreen() {
@@ -99,54 +106,78 @@ class BirthdayExperience {
             loadingScreen.style.display = 'none';
             // إظهار مؤشر الصوت
             document.getElementById('audioIndicator').classList.add('show');
-            this.updateAudioIndicator('🔇 اضغط للتشغيل');
+            this.updateAudioIndicator('🔇 اضغط في أي مكان لتشغيل الصوت');
         }, 500);
     }
 
     createSceneElements() {
         // إنشاء النجوم للنهاية
+        this.createStars();
+        
+        // إنشاء قلوب طافية
+        this.createFloatingHearts();
+        
+        // إنشاء أضواء خلفية إضافية
+        this.createBackgroundEffects();
+        
+        // إنشاء بالونات للمشهد 4
+        this.createBalloonsForCelebration();
+        
+        // إنشاء كونفيتي للمشهد 4
+        this.createConfettiForCelebration();
+        
+        // إنشاء نجوم متحركة
+        this.createMovingStars();
+    }
+
+    createStars() {
         const starsContainer = document.getElementById('endingStars');
-        for (let i = 0; i < 80; i++) { // زدنا عدد النجوم
+        for (let i = 0; i < 100; i++) {
             const star = document.createElement('div');
             star.className = 'star';
             star.style.left = `${Math.random() * 100}%`;
             star.style.top = `${Math.random() * 100}%`;
             star.style.animationDelay = `${Math.random() * 5}s`;
+            star.style.animationDuration = `${Math.random() * 3 + 2}s`;
             starsContainer.appendChild(star);
         }
+    }
 
-        // إنشاء قلوب طافية
-        const heartsContainer = document.getElementById('floatingHearts');
-        for (let i = 0; i < 25; i++) {
+    createFloatingHearts() {
+        const heartsContainer = document.querySelector('.floating-hearts') || document.body;
+        for (let i = 0; i < 20; i++) {
             setTimeout(() => {
                 const heart = document.createElement('div');
                 heart.className = 'floating-heart';
                 heart.innerHTML = ['❤️', '💖', '💗', '💓', '💞'][i % 5];
+                heart.style.position = 'absolute';
                 heart.style.left = `${Math.random() * 100}%`;
-                heart.style.fontSize = `${Math.random() * 25 + 20}px`;
-                heart.style.opacity = '0.8';
+                heart.style.fontSize = `${Math.random() * 20 + 15}px`;
+                heart.style.opacity = '0';
                 heart.style.animation = `heartFloat ${Math.random() * 8 + 8}s linear infinite`;
-                heart.style.animationDelay = `${i * 0.3}s`;
+                heart.style.animationDelay = `${i * 0.4}s`;
+                heart.style.zIndex = '1';
                 heartsContainer.appendChild(heart);
-            }, i * 200);
+            }, i * 300);
         }
-
-        // إنشاء أضواء خلفية إضافية
-        this.createBackgroundEffects();
     }
 
     createBackgroundEffects() {
         // أضواء خلفية للرسالة
         const messageCard = document.querySelector('.message-card');
         if (messageCard) {
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 12; i++) {
                 setTimeout(() => {
                     const light = document.createElement('div');
                     light.className = 'background-light';
-                    light.style.background = `radial-gradient(circle, rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.1) 0%, transparent 70%)`;
-                    light.style.width = `${Math.random() * 200 + 100}px`;
-                    light.style.height = light.style.width;
                     light.style.position = 'absolute';
+                    light.style.width = `${Math.random() * 150 + 50}px`;
+                    light.style.height = light.style.width;
+                    light.style.background = `radial-gradient(circle, 
+                        rgba(${Math.floor(Math.random() * 100 + 155)}, 
+                        ${Math.floor(Math.random() * 100 + 155)}, 
+                        255, 0.1) 0%, 
+                        transparent 70%)`;
                     light.style.borderRadius = '50%';
                     light.style.top = `${Math.random() * 100}%`;
                     light.style.left = `${Math.random() * 100}%`;
@@ -154,22 +185,96 @@ class BirthdayExperience {
                     light.style.animation = `lightPulse ${Math.random() * 8 + 4}s infinite alternate`;
                     light.style.zIndex = '-1';
                     messageCard.appendChild(light);
-                }, i * 300);
+                }, i * 400);
             }
+        }
+    }
+
+    createBalloonsForCelebration() {
+        const container = document.getElementById('interactiveBalloons');
+        if (!container) return;
+        
+        const balloonColors = [
+            'linear-gradient(135deg, #ff4da6, #ff66b3)',
+            'linear-gradient(135deg, #00ffcc, #00e6b8)',
+            'linear-gradient(135deg, #ffcc00, #ff9900)',
+            'linear-gradient(135deg, #9966ff, #6600cc)',
+            'linear-gradient(135deg, #ff6666, #ff3366)',
+            'linear-gradient(135deg, #66ffcc, #33cc99)'
+        ];
+        
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.background = balloonColors[i % balloonColors.length];
+                balloon.style.left = `${Math.random() * 100}%`;
+                balloon.style.animationDuration = `${Math.random() * 10 + 15}s`;
+                balloon.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(balloon);
+                
+                // إضافة حدث النقر
+                balloon.addEventListener('click', () => this.popBalloon(balloon));
+            }, i * 500);
+        }
+    }
+
+    createConfettiForCelebration() {
+        const container = document.getElementById('confettiZone');
+        if (!container) return;
+        
+        for (let i = 0; i < 100; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti-piece';
+                confetti.style.background = [
+                    '#ff4da6', '#00ffcc', '#ffcc00', 
+                    '#ffffff', '#9966ff', '#ff6666'
+                ][Math.floor(Math.random() * 6)];
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDuration = `${Math.random() * 4 + 3}s`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(confetti);
+            }, i * 30);
+        }
+    }
+
+    createMovingStars() {
+        const scene4 = document.getElementById('scene4');
+        if (!scene4) return;
+        
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                const star = document.createElement('div');
+                star.className = 'moving-star';
+                star.style.position = 'absolute';
+                star.style.width = '20px';
+                star.style.height = '20px';
+                star.style.background = 'radial-gradient(circle, white 30%, transparent 70%)';
+                star.style.borderRadius = '50%';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animation = `starMove ${Math.random() * 15 + 10}s linear infinite`;
+                star.style.opacity = '0.6';
+                star.style.filter = 'blur(1px)';
+                scene4.appendChild(star);
+            }, i * 300);
         }
     }
 
     setupEventListeners() {
         // تفاعل الهدية
         const giftWrapper = document.getElementById('giftWrapper');
-        giftWrapper.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.openGift();
-        });
+        if (giftWrapper) {
+            giftWrapper.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.openGift();
+            });
 
-        giftWrapper.addEventListener('mouseenter', () => {
-            this.audioManager.playSound('hoverSound', 0.1);
-        });
+            giftWrapper.addEventListener('mouseenter', () => {
+                this.audioManager.playSound('hoverSound', 0.1);
+            });
+        }
 
         // تفاعل البالونات
         document.addEventListener('click', (e) => {
@@ -178,9 +283,29 @@ class BirthdayExperience {
             }
         });
 
-        // زر التخطي
-        document.getElementById('skipButton').addEventListener('click', () => {
+        // زر التخطي العام
+        document.getElementById('globalSkipButton')?.addEventListener('click', () => {
             this.nextScene();
+        });
+
+        // زر التالي في المشهد 4
+        document.getElementById('nextToMessage')?.addEventListener('click', () => {
+            this.showScene(5);
+        });
+
+        // زر التخطي في المشهد 5
+        document.getElementById('skipButton')?.addEventListener('click', () => {
+            this.nextScene();
+        });
+
+        // زر إعادة القراءة
+        document.getElementById('rereadBtn')?.addEventListener('click', () => {
+            this.rereadMessage();
+        });
+
+        // زر تحكم الموسيقى
+        document.getElementById('musicControl')?.addEventListener('click', () => {
+            this.toggleMusic();
         });
 
         // نقاط التقدم
@@ -199,13 +324,16 @@ class BirthdayExperience {
 
         // تحكم الصوت
         const volumeSlider = document.getElementById('volumeSlider');
-        volumeSlider.addEventListener('input', (e) => {
-            const volume = parseFloat(e.target.value);
-            this.audioManager.setVolume(volume);
-        });
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                const volume = parseFloat(e.target.value);
+                this.audioManager.setVolume(volume);
+                this.updateAudioIndicator(`🔊 مستوى الصوت: ${Math.round(volume * 100)}%`);
+            });
+        }
 
         // زر كتم الصوت
-        document.getElementById('muteButton').addEventListener('click', (e) => {
+        document.getElementById('muteButton')?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleMute();
         });
@@ -217,40 +345,72 @@ class BirthdayExperience {
 
         // تحكم لوحة المفاتيح
         document.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                this.nextScene();
-            } else if (e.key === 'ArrowLeft' && this.currentScene > 1) {
-                e.preventDefault();
-                this.showScene(this.currentScene - 1);
-            } else if (e.key === 'm' || e.key === 'M') {
-                e.preventDefault();
-                this.toggleMute();
-            } else if (e.key === 'r' || e.key === 'R') {
-                e.preventDefault();
-                this.restartExperience();
-            } else if (e.key === 's' || e.key === 'S') {
-                e.preventDefault();
-                this.toggleMusic();
+            switch(e.key) {
+                case ' ':
+                case 'Enter':
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.nextScene();
+                    break;
+                case 'ArrowLeft':
+                    if (this.currentScene > 1) {
+                        e.preventDefault();
+                        this.showScene(this.currentScene - 1);
+                    }
+                    break;
+                case 'm':
+                case 'M':
+                    e.preventDefault();
+                    this.toggleMute();
+                    break;
+                case 'r':
+                case 'R':
+                    e.preventDefault();
+                    this.restartExperience();
+                    break;
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    this.toggleMusic();
+                    break;
             }
         });
 
-        // منع قائمة السياق
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-        // تفاعل النقر لتفعيل الصوت
+        // تفاعل النقر للصوت
+        let audioActivated = false;
         document.addEventListener('click', () => {
-            this.audioManager.activateAudio();
-        }, { once: true });
+            if (!audioActivated) {
+                this.audioManager.activateAudio();
+                this.updateAudioIndicator('🔊 الصوت مفعل الآن!');
+                audioActivated = true;
+                
+                // إذا كنا في المشهد 4 أو 5 ونريد الموسيقى
+                if (this.currentScene >= 4 && !this.isMusicPlaying) {
+                    setTimeout(() => {
+                        this.audioManager.playMusic(0.3);
+                        this.isMusicPlaying = true;
+                    }, 500);
+                }
+            }
+        }, { once: false });
+
+        // منع قائمة السياق
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
     }
 
     startExperience() {
         // إظهار زر التخطي
-        document.getElementById('skipButton').classList.add('show');
+        document.getElementById('globalSkipButton')?.classList.add('show');
         
-        // بدء المشهد الأول
+        // بدء التقدم التلقائي للمشهد الأول
+        this.startAutoProgress();
+        
+        // تشغيل صوت خفيف للمشهد الأول
         setTimeout(() => {
-            this.nextScene();
+            this.audioManager.playSound('transitionSound', 0.2);
         }, 1000);
     }
 
@@ -259,13 +419,17 @@ class BirthdayExperience {
         const age18 = document.getElementById('age18');
         const message = document.getElementById('transitionMessage');
         
+        if (!age17 || !age18) return;
+        
         // تشغيل صوت انتقالي
         this.audioManager.playSound('transitionSound', 0.3);
         
         // تحريك الرسالة
         setTimeout(() => {
-            message.style.opacity = '1';
-            message.style.transition = 'opacity 1s ease';
+            if (message) {
+                message.style.opacity = '1';
+                message.style.transition = 'opacity 1s ease';
+            }
         }, 500);
         
         // تحريك العمر 17 للخروج
@@ -289,13 +453,10 @@ class BirthdayExperience {
         
         // إخفاء الرسالة
         setTimeout(() => {
-            message.style.opacity = '0';
-        }, 3000);
-        
-        // الانتقال للمشهد التالي
-        setTimeout(() => {
-            this.nextScene();
-        }, 4000);
+            if (message) {
+                message.style.opacity = '0';
+            }
+        }, 3500);
     }
 
     openGift() {
@@ -316,27 +477,33 @@ class BirthdayExperience {
         this.audioManager.playSound('giftSound', 0.7);
         
         // تأثير اهتزاز
-        giftBox.parentElement.style.transform = 'scale(1.15)';
-        giftBox.parentElement.style.transition = 'transform 0.3s ease';
+        if (giftBox && giftBox.parentElement) {
+            giftBox.parentElement.style.transform = 'scale(1.15)';
+            giftBox.parentElement.style.transition = 'transform 0.3s ease';
+        }
         
         setTimeout(() => {
-            giftBox.parentElement.style.transform = 'scale(1)';
-            
-            // فتح الهدية
-            giftBox.classList.add('opened');
-            
-            // انفجار الضوء
-            giftLight.classList.add('active');
-            
-            // نشر شرائط ضوئية
-            setTimeout(() => {
-                this.createSparkleBurst();
-            }, 500);
-            
-            // الانتقال لمشهد الاحتفال
-            setTimeout(() => {
-                this.nextScene();
-            }, 1800);
+            if (giftBox && giftBox.parentElement) {
+                giftBox.parentElement.style.transform = 'scale(1)';
+                
+                // فتح الهدية
+                giftBox.classList.add('opened');
+                
+                // انفجار الضوء
+                if (giftLight) {
+                    giftLight.classList.add('active');
+                }
+                
+                // نشر شرائط ضوئية
+                setTimeout(() => {
+                    this.createSparkleBurst();
+                }, 500);
+                
+                // الانتقال لمشهد الاحتفال بعد 2 ثانية
+                setTimeout(() => {
+                    this.nextScene();
+                }, 2000);
+            }
         }, 300);
     }
 
@@ -356,7 +523,9 @@ class BirthdayExperience {
         beam.style.zIndex = '1';
         
         const giftWrapper = document.getElementById('giftWrapper');
-        giftWrapper.appendChild(beam);
+        if (giftWrapper) {
+            giftWrapper.appendChild(beam);
+        }
         
         setTimeout(() => {
             beam.remove();
@@ -365,6 +534,8 @@ class BirthdayExperience {
 
     createSparkleBurst() {
         const container = document.getElementById('giftSparkles');
+        if (!container) return;
+        
         for(let i = 0; i < 30; i++) {
             setTimeout(() => {
                 const sparkle = document.createElement('div');
@@ -388,137 +559,48 @@ class BirthdayExperience {
         }
     }
 
-    createCelebration() {
+    startScene4Celebration() {
         const container = document.getElementById('celebrationParticles');
         
-        // تشغيل صوت الاحتفال لمدة محددة (5 ثواني)
+        // تشغيل صوت الاحتفال لمدة 4 ثواني فقط
         this.isCelebrationSoundPlaying = true;
-        const celebrationSound = this.audioManager.playSound('celebrationSound', 0.8);
+        this.audioManager.playSound('celebrationSound', 0.6);
         
-        // إيقاف صوت الاحتفال بعد 5 ثواني
-        if (celebrationSound) {
-            this.celebrationTimer = setTimeout(() => {
-                celebrationSound.pause();
-                celebrationSound.currentTime = 0;
-                this.isCelebrationSoundPlaying = false;
-            }, 5000);
-        }
+        // إيقاف صوت الاحتفال بعد 4 ثواني
+        this.celebrationTimer = setTimeout(() => {
+            this.isCelebrationSoundPlaying = false;
+        }, 4000);
         
-        // إضافة تأثير خاص عند بداية الاحتفال
+        // تشغيل الموسيقى الرئيسية بعد 2 ثانية من صوت الاحتفال
+        setTimeout(() => {
+            if (!this.isMuted) {
+                this.audioManager.playMusic(0.3);
+                this.isMusicPlaying = true;
+                this.updateAudioIndicator('🎵 موسيقى تامر حسني تشتغل');
+            }
+        }, 2000);
+        
+        // إضافة تأثيرات خاصة للمشهد 4
         this.createCelebrationIntro();
         
-        // إنشاء بالونات بأشكال مختلفة
-        const balloonColors = ['#ff4da6', '#00ffcc', '#ffcc00', '#9966ff', '#ff6666', '#ff9966', '#66ffcc'];
-        for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-                const balloon = document.createElement('div');
-                balloon.className = 'balloon';
-                
-                // أشكال مختلفة للبالونات
-                if (i % 3 === 0) {
-                    // شكل قلب
-                    balloon.innerHTML = '🎈';
-                    balloon.style.fontSize = '50px';
-                    balloon.style.background = 'transparent';
-                } else {
-                    // شكل دائري عادي
-                    balloon.style.background = balloonColors[i % balloonColors.length];
-                }
-                
-                balloon.style.left = `${Math.random() * 100}%`;
-                balloon.style.animationDuration = `${Math.random() * 8 + 12}s`;
-                balloon.style.animationDelay = `${Math.random() * 3}s`;
-                balloon.style.zIndex = Math.floor(Math.random() * 10);
-                container.appendChild(balloon);
-                
-                setTimeout(() => {
-                    if (balloon.parentNode) {
-                        balloon.remove();
-                    }
-                }, 20000);
-            }, i * 250);
-        }
+        // إنشاء بالونات إضافية
+        this.createAdditionalBalloons();
         
-        // إنشاء كونفيتي بكميات أكبر
-        for (let i = 0; i < 150; i++) {
-            setTimeout(() => {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti-piece';
-                
-                // أشكال مختلفة للكونفيتي
-                if (i % 5 === 0) {
-                    confetti.style.width = '15px';
-                    confetti.style.height = '15px';
-                    confetti.style.borderRadius = '0';
-                    confetti.style.transform = `rotate(${Math.random() * 45}deg)`;
-                }
-                
-                confetti.style.background = ['#ff4da6', '#00ffcc', '#ffcc00', '#ffffff', '#ff9966', '#9966ff'][Math.floor(Math.random() * 6)];
-                confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.animationDuration = `${Math.random() * 4 + 3}s`;
-                confetti.style.animationDelay = `${Math.random() * 3}s`;
-                container.appendChild(confetti);
-                
-                setTimeout(() => {
-                    if (confetti.parentNode) {
-                        confetti.remove();
-                    }
-                }, 7000);
-            }, i * 20);
-        }
-        
-        // إنشاء بقع لامعة متحركة
-        for (let i = 0; i < 40; i++) {
-            setTimeout(() => {
-                const sparkle = document.createElement('div');
-                sparkle.className = 'sparkle';
-                sparkle.style.left = `${Math.random() * 100}%`;
-                sparkle.style.top = `${Math.random() * 100}%`;
-                sparkle.style.animationDelay = `${Math.random() * 3}s`;
-                sparkle.style.animationDuration = `${Math.random() * 3 + 2}s`;
-                container.appendChild(sparkle);
-            }, i * 75);
-        }
-        
-        // إضافة نجوم متحركة
-        for (let i = 0; i < 25; i++) {
-            setTimeout(() => {
-                const star = document.createElement('div');
-                star.className = 'moving-star';
-                star.style.position = 'absolute';
-                star.style.width = '15px';
-                star.style.height = '15px';
-                star.style.background = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'15\' height=\'15\' viewBox=\'0 0 15 15\'><polygon points=\'7.5,0 9.8,5.1 15,5.8 11.2,9.6 12.2,15 7.5,12.3 2.8,15 3.8,9.6 0,5.8 5.2,5.1\' fill=\'white\'/></svg>")';
-                star.style.left = `${Math.random() * 100}%`;
-                star.style.top = `${Math.random() * 100}%`;
-                star.style.animation = `starMove ${Math.random() * 10 + 5}s linear infinite`;
-                star.style.opacity = '0.6';
-                container.appendChild(star);
-            }, i * 150);
-        }
-        
-        // تشغيل الموسيقى الرئيسية بعد انتهاء صوت الاحتفال
-        setTimeout(() => {
-            this.audioManager.playMusic(0.4);
-            this.updateAudioIndicator('🎵 موسيقى تامر حسني');
-        }, 5000);
-        
-        // الانتقال التلقائي لمشهد الرسالة
-        setTimeout(() => {
-            this.nextScene();
-        }, 10000);
+        // بدء التقدم التلقائي بعد 12 ثانية
+        this.startAutoProgress();
     }
 
     createCelebrationIntro() {
         const container = document.getElementById('celebrationParticles');
+        if (!container) return;
         
         // تأثير انفجار بداية الاحتفال
-        for(let i = 0; i < 50; i++) {
+        for(let i = 0; i < 30; i++) {
             setTimeout(() => {
                 const burst = document.createElement('div');
                 burst.className = 'celebration-burst';
                 burst.style.position = 'absolute';
-                burst.style.width = `${Math.random() * 100 + 50}px`;
+                burst.style.width = `${Math.random() * 80 + 40}px`;
                 burst.style.height = burst.style.width;
                 burst.style.background = `radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%)`;
                 burst.style.borderRadius = '50%';
@@ -532,7 +614,32 @@ class BirthdayExperience {
                 setTimeout(() => {
                     burst.remove();
                 }, 1000);
-            }, i * 30);
+            }, i * 50);
+        }
+    }
+
+    createAdditionalBalloons() {
+        const container = document.getElementById('interactiveBalloons');
+        if (!container) return;
+        
+        const balloonShapes = ['🎈', '🎈', '🎈', '💝', '🎀', '✨'];
+        
+        for (let i = 0; i < 10; i++) {
+            setTimeout(() => {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.innerHTML = balloonShapes[Math.floor(Math.random() * balloonShapes.length)];
+                balloon.style.fontSize = '40px';
+                balloon.style.background = 'transparent';
+                balloon.style.textShadow = '0 0 10px currentColor';
+                balloon.style.left = `${Math.random() * 100}%`;
+                balloon.style.animationDuration = `${Math.random() * 12 + 18}s`;
+                balloon.style.animationDelay = `${Math.random() * 3}s`;
+                container.appendChild(balloon);
+                
+                // إضافة حدث النقر
+                balloon.addEventListener('click', () => this.popBalloon(balloon));
+            }, i * 400);
         }
     }
 
@@ -541,6 +648,9 @@ class BirthdayExperience {
         this.audioManager.playSound('popSound', 0.4);
         
         balloon.classList.add('pop');
+        
+        // تحديث عداد الفرح
+        this.updateCelebrationCounter();
         
         // إضافة شرائط عند فرقعة البالون
         setTimeout(() => {
@@ -551,11 +661,15 @@ class BirthdayExperience {
                 strip.style.width = '3px';
                 strip.style.height = '20px';
                 strip.style.background = balloon.style.background || '#ff4da6';
-                strip.style.top = balloon.offsetTop + 'px';
-                strip.style.left = balloon.offsetLeft + 'px';
+                strip.style.top = `${balloon.offsetTop}px`;
+                strip.style.left = `${balloon.offsetLeft}px`;
                 strip.style.transform = `rotate(${i * 45}deg) translateY(-10px)`;
                 strip.style.animation = `stripFall ${Math.random() * 1 + 0.5}s ease-out forwards`;
-                document.getElementById('celebrationParticles').appendChild(strip);
+                
+                const particlesContainer = document.getElementById('celebrationParticles');
+                if (particlesContainer) {
+                    particlesContainer.appendChild(strip);
+                }
                 
                 setTimeout(() => {
                     strip.remove();
@@ -570,6 +684,121 @@ class BirthdayExperience {
         }, 500);
     }
 
+    updateCelebrationCounter() {
+        const counterElement = document.getElementById('celebrationCount');
+        if (!counterElement) return;
+        
+        let currentCount = parseInt(counterElement.textContent) || 18;
+        currentCount += 1;
+        counterElement.textContent = currentCount;
+        
+        // تأثير على العداد
+        counterElement.style.transform = 'scale(1.3)';
+        counterElement.style.color = '#ffcc00';
+        setTimeout(() => {
+            counterElement.style.transform = 'scale(1)';
+            counterElement.style.color = '';
+        }, 300);
+    }
+
+    startMessageScene() {
+        // توقف التقدم التلقائي القديم
+        this.stopAutoProgress();
+        
+        // إذا كانت الموسيقى مشتغلة من المشهد السابق، نستمر فيها
+        if (this.isMusicPlaying) {
+            // تخفيف الموسيقى قليلاً للمشهد العاطفي
+            this.audioManager.setMusicVolume(0.2);
+            this.updateAudioIndicator('💌 رسالة مع موسيقى هادئة');
+        }
+        
+        // بدء شريط قراءة الرسالة
+        this.startReadingProgress();
+        
+        // بدء التقدم التلقائي بعد 10 ثواني
+        this.autoProgressTimer = setTimeout(() => {
+            if (!this.messageReadComplete) {
+                this.nextScene();
+            }
+        }, this.sceneTimers[5]);
+    }
+
+    startReadingProgress() {
+        const progressBar = document.getElementById('readingProgress');
+        if (!progressBar) return;
+        
+        progressBar.style.width = '0%';
+        this.messageReadComplete = false;
+        
+        setTimeout(() => {
+            progressBar.style.transition = 'width 8s linear';
+            progressBar.style.width = '100%';
+            
+            this.readingProgressTimer = setTimeout(() => {
+                this.messageReadComplete = true;
+                progressBar.style.background = 'linear-gradient(90deg, var(--color-aqua), var(--color-blush))';
+            }, 8000);
+        }, 1000);
+    }
+
+    rereadMessage() {
+        // إعادة تعيين شريط القراءة
+        const progressBar = document.getElementById('readingProgress');
+        if (progressBar) {
+            progressBar.style.transition = 'none';
+            progressBar.style.width = '0%';
+            
+            setTimeout(() => {
+                progressBar.style.transition = 'width 8s linear';
+                progressBar.style.width = '100%';
+                
+                if (this.readingProgressTimer) {
+                    clearTimeout(this.readingProgressTimer);
+                }
+                
+                this.readingProgressTimer = setTimeout(() => {
+                    this.messageReadComplete = true;
+                    progressBar.style.background = 'linear-gradient(90deg, var(--color-aqua), var(--color-blush))';
+                }, 8000);
+            }, 10);
+        }
+        
+        // تشغيل صوت للتفاعل
+        this.audioManager.playSound('hoverSound', 0.2);
+        this.updateAudioIndicator('📖 إعادة قراءة الرسالة');
+    }
+
+    startEndingScene() {
+        // تخفيف الموسيقى تدريجياً
+        if (this.isMusicPlaying) {
+            this.audioManager.fadeOutMusic(5000);
+            this.isMusicPlaying = false;
+        }
+        
+        // إضافة نجوم إضافية
+        this.createAdditionalStars();
+        
+        // لا يوجد تقدم تلقائي للنهاية
+        this.stopAutoProgress();
+    }
+
+    createAdditionalStars() {
+        const container = document.getElementById('endingStars');
+        if (!container) return;
+        
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 3}s`;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                container.appendChild(star);
+            }, i * 100);
+        }
+    }
+
     nextScene() {
         if (this.currentScene < this.totalScenes) {
             this.currentScene++;
@@ -579,9 +808,14 @@ class BirthdayExperience {
 
     showScene(sceneNumber) {
         // إيقاف أي مؤقتات سابقة
+        this.stopAutoProgress();
         if (this.celebrationTimer) {
             clearTimeout(this.celebrationTimer);
             this.isCelebrationSoundPlaying = false;
+        }
+        if (this.readingProgressTimer) {
+            clearTimeout(this.readingProgressTimer);
+            this.messageReadComplete = false;
         }
         
         // تحديث نقاط التقدم
@@ -604,120 +838,98 @@ class BirthdayExperience {
             switch(sceneNumber) {
                 case 2:
                     setTimeout(() => this.animateAgeTransition(), 500);
+                    this.startAutoProgress();
+                    this.updateAudioIndicator('🎂 عمر جديد وحياة جديدة');
                     break;
-                case 4:
-                    setTimeout(() => this.createCelebration(), 500);
-                    break;
-                case 5:
-                    // المشهد 5: الرسالة (لا يوجد صوت إضافي هنا)
-                    // الموسيقى تستمر من المشهد السابق
-                    this.updateAudioIndicator('🎵 موسيقى تامر حسني');
-                    break;
-                case 6:
-                    // المشهد 6: النهاية
-                    // إضافة تأثيرات خاصة للنهاية
-                    setTimeout(() => this.createEndingEffects(), 1000);
                     
-                    // تخفيف الموسيقى في النهاية
-                    setTimeout(() => {
-                        this.audioManager.fadeOutMusic(4000);
-                        this.updateAudioIndicator('🎵 الموسيقى بتخلص');
-                    }, 5000);
+                case 3:
+                    // لا تقدم تلقائي - انتظار تفاعل المستخدم
+                    this.updateAudioIndicator('🎁 اضغطي على الهدية!');
+                    break;
+                    
+                case 4:
+                    setTimeout(() => this.startScene4Celebration(), 500);
+                    this.updateAudioIndicator('🎉 احتفال وموسيقى تامر حسني!');
+                    break;
+                    
+                case 5:
+                    setTimeout(() => this.startMessageScene(), 500);
+                    break;
+                    
+                case 6:
+                    setTimeout(() => this.startEndingScene(), 500);
+                    this.updateAudioIndicator('✨ النهاية.. أتمنى تكوني عجبتك الهدية 💝');
+                    break;
+                    
+                default:
+                    this.startAutoProgress();
                     break;
             }
             
-            // تحديث مؤشر الصوت
-            this.updateSceneAudioIndicator();
+            // تشغيل صوت انتقال
+            if (sceneNumber > 1) {
+                this.audioManager.playSound('transitionSound', 0.2);
+            }
         }
     }
 
-    createEndingEffects() {
-        // إضافة شعار خاص في النهاية
-        const endingContainer = document.getElementById('scene6');
+    startAutoProgress() {
+        // إيقاف أي مؤقت سابق
+        this.stopAutoProgress();
         
-        // شعار ضوئي
-        const logo = document.createElement('div');
-        logo.className = 'ending-logo';
-        logo.innerHTML = '🎂🎉🎁';
-        logo.style.fontSize = '4rem';
-        logo.style.marginTop = '40px';
-        logo.style.opacity = '0';
-        logo.style.animation = 'fadeIn 2s ease-out 1s forwards';
-        endingContainer.appendChild(logo);
-        
-        // رسالة تأكيد
-        const confirmation = document.createElement('div');
-        confirmation.className = 'confirmation-message';
-        confirmation.innerHTML = 'أتمنى تكوني عجبتك الهدية! 😊';
-        confirmation.style.fontSize = '1.8rem';
-        confirmation.style.marginTop = '30px';
-        confirmation.style.color = 'var(--color-aqua)';
-        confirmation.style.opacity = '0';
-        confirmation.style.animation = 'fadeIn 2s ease-out 3s forwards';
-        endingContainer.appendChild(confirmation);
-        
-        // إضافة أضواء متحركة في الخلفية
-        for(let i = 0; i < 10; i++) {
-            setTimeout(() => {
-                const light = document.createElement('div');
-                light.className = 'ending-light';
-                light.style.position = 'absolute';
-                light.style.width = '100px';
-                light.style.height = '100px';
-                light.style.background = `radial-gradient(circle, var(--color-${['blush', 'aqua', 'sunrise', 'mist'][i % 4]}) 0%, transparent 70%)`;
-                light.style.borderRadius = '50%';
-                light.style.top = `${Math.random() * 100}%`;
-                light.style.left = `${Math.random() * 100}%`;
-                light.style.opacity = '0.3';
-                light.style.animation = `lightFloat ${Math.random() * 10 + 5}s infinite alternate`;
-                endingContainer.appendChild(light);
-            }, i * 500);
+        const sceneTime = this.sceneTimers[this.currentScene];
+        if (sceneTime > 0) {
+            this.autoProgressTimer = setTimeout(() => {
+                this.nextScene();
+            }, sceneTime);
         }
     }
 
-    updateSceneAudioIndicator() {
-        const sceneMessages = {
-            1: "🎶 استعد للفرحة",
-            2: "🎂 عمر جديد",
-            3: "🎁 افتح الهدية",
-            4: "🎉 احتفال مع موسيقى تامر حسني",
-            5: "💌 رسالة مع الموسيقى",
-            6: "✨ النهاية"
-        };
-        
-        if (sceneMessages[this.currentScene]) {
-            this.updateAudioIndicator(sceneMessages[this.currentScene]);
+    stopAutoProgress() {
+        if (this.autoProgressTimer) {
+            clearTimeout(this.autoProgressTimer);
+            this.autoProgressTimer = null;
         }
     }
 
     toggleMute() {
         this.isMuted = !this.isMuted;
         const button = document.getElementById('muteButton');
-        const icon = button.querySelector('.sound-icon');
-        const indicator = document.getElementById('audioIndicator');
+        const icon = button?.querySelector('.sound-icon');
+        const soundWave = document.getElementById('soundWave');
         
         if (this.isMuted) {
-            icon.textContent = '🔇';
+            if (icon) icon.textContent = '🔇';
+            if (soundWave) soundWave.style.opacity = '0.3';
             this.audioManager.muteAll();
-            indicator.innerHTML = '<span class="audio-status">🔇 الصوت مكتوم</span>';
+            this.updateAudioIndicator('🔇 الصوت مكتوم');
         } else {
-            icon.textContent = '🔈';
+            if (icon) icon.textContent = '🔈';
+            if (soundWave) soundWave.style.opacity = '1';
             this.audioManager.unmuteAll();
-            indicator.innerHTML = '<span class="audio-status">🔊 الصوت شغال</span>';
+            this.updateAudioIndicator('🔊 الصوت شغال');
             
-            // استئناف الموسيقى إذا كانت مشتغلة قبل الكتم
-            if (this.isMusicPlaying && this.currentScene >= 4) {
-                this.audioManager.playMusic(0.3);
+            // استئناف الموسيقى إذا كنا في المشهد 4 أو 5
+            if (this.currentScene >= 4 && !this.isMusicPlaying) {
+                setTimeout(() => {
+                    this.audioManager.playMusic(0.3);
+                    this.isMusicPlaying = true;
+                }, 500);
             }
         }
     }
 
     toggleMusic() {
+        if (this.currentScene < 4) {
+            this.updateAudioIndicator('🎵 الموسيقى تبدأ من المشهد 4');
+            return;
+        }
+        
         if (this.isMusicPlaying) {
             this.audioManager.fadeOutMusic(1000);
             this.isMusicPlaying = false;
             this.updateAudioIndicator('⏸️ توقفت الموسيقى');
-        } else if (this.currentScene >= 4) {
+        } else {
             this.audioManager.playMusic(0.3);
             this.isMusicPlaying = true;
             this.updateAudioIndicator('▶️ عادت الموسيقى');
@@ -726,8 +938,11 @@ class BirthdayExperience {
 
     updateAudioIndicator(text) {
         const indicator = document.getElementById('audioIndicator');
-        indicator.innerHTML = `<span class="audio-status">${text}</span>`;
-        indicator.classList.add('playing');
+        if (!indicator) return;
+        
+        const statusElement = indicator.querySelector('.audio-status') || indicator;
+        statusElement.textContent = text;
+        indicator.classList.add('show', 'playing');
         
         setTimeout(() => {
             indicator.classList.remove('playing');
@@ -736,20 +951,24 @@ class BirthdayExperience {
 
     restartExperience() {
         // إيقاف كل المؤقتات
+        this.stopAutoProgress();
         if (this.celebrationTimer) {
             clearTimeout(this.celebrationTimer);
         }
+        if (this.readingProgressTimer) {
+            clearTimeout(this.readingProgressTimer);
+        }
         
+        // إعادة تعيين المتغيرات
         this.currentScene = 1;
         this.hasOpenedGift = false;
         this.isMusicPlaying = false;
         this.isCelebrationSoundPlaying = false;
+        this.messageReadComplete = false;
         this.audioManager.stopAll();
         
         // تنظيف التأثيرات السابقة
-        document.querySelectorAll('.background-light, .ending-light, .ending-logo, .confirmation-message, .celebration-burst, .moving-star').forEach(el => {
-            if (el.parentNode) el.remove();
-        });
+        this.cleanupEffects();
         
         // إعادة تعيين المشاهد
         document.querySelectorAll('.scene').forEach(scene => {
@@ -762,14 +981,18 @@ class BirthdayExperience {
             giftBox.classList.remove('opened');
         }
         
-        // تنظيف حاويات التأثيرات
-        const containers = ['celebrationParticles', 'giftSparkles', 'floatingHearts'];
-        containers.forEach(id => {
-            const container = document.getElementById(id);
-            if (container) {
-                container.innerHTML = '';
-            }
-        });
+        // إعادة تعيين شريط القراءة
+        const readingProgress = document.getElementById('readingProgress');
+        if (readingProgress) {
+            readingProgress.style.width = '0%';
+            readingProgress.style.background = '';
+        }
+        
+        // إعادة تعيين عداد الفرح
+        const celebrationCount = document.getElementById('celebrationCount');
+        if (celebrationCount) {
+            celebrationCount.textContent = '18';
+        }
         
         // إظهار المشهد الأول
         const scene1 = document.getElementById('scene1');
@@ -789,10 +1012,40 @@ class BirthdayExperience {
         
         this.updateAudioIndicator('🔄 ابتدي من جديد');
     }
+
+    cleanupEffects() {
+        // تنظيف حاويات التأثيرات
+        const containers = [
+            'celebrationParticles',
+            'giftSparkles',
+            'interactiveBalloons',
+            'confettiZone',
+            'sparkleField'
+        ];
+        
+        containers.forEach(id => {
+            const container = document.getElementById(id);
+            if (container) {
+                container.innerHTML = '';
+            }
+        });
+        
+        // تنظيف العناصر المضافة ديناميكياً
+        document.querySelectorAll('.background-light, .ending-light, .floating-heart, .moving-star, .celebration-burst, .balloon-strip, .mini-sparkle, .light-beam').forEach(el => {
+            if (el.parentNode) el.remove();
+        });
+        
+        // إعادة إنشاء العناصر الأساسية
+        setTimeout(() => {
+            this.createBalloonsForCelebration();
+            this.createConfettiForCelebration();
+            this.createMovingStars();
+        }, 500);
+    }
 }
 
 // ============================================
-// مدير الصوتيات (محدث)
+// مدير الصوتيات - المحدث
 // ============================================
 class AudioManager {
     constructor() {
@@ -801,155 +1054,85 @@ class AudioManager {
         this.volume = 0.7;
         this.isMuted = false;
         this.audioEnabled = false;
+        this.musicVolume = 0.3;
+        this.currentMusic = null;
     }
 
     async loadSounds() {
         try {
             console.log('🎵 بدء تحميل الصوتيات...');
             
-            // تحميل الأصوات من مجلد sounds/
-            this.sounds['giftSound'] = new Audio('sounds/gift-open.mp3');
-            this.sounds['celebrationSound'] = new Audio('sounds/celebration.mp3');
-            this.sounds['hoverSound'] = new Audio(); // صوت افتراضي للتفاعل
-            this.sounds['transitionSound'] = new Audio(); // صوت انتقالي
-            this.sounds['popSound'] = new Audio(); // صوت فرقعة
+            // تحميل الأصوات مع fallback
+            this.sounds['giftSound'] = this.createAudio('sounds/gift-open.mp3', 'fallback-gift');
+            this.sounds['celebrationSound'] = this.createAudio('sounds/celebration.mp3', 'fallback-celebration');
+            this.sounds['hoverSound'] = this.createFallbackSound(800, 0.05);
+            this.sounds['transitionSound'] = this.createFallbackSound(1200, 0.1);
+            this.sounds['popSound'] = this.createFallbackSound(200, 0.1);
             
             // تحميل الموسيقى الرئيسية
-            this.music = new Audio('sounds/تامر حسني - كل سنة وانت طيب بدون موسيقى(360P).mp4');
-            this.music.loop = true;
-            this.music.volume = 0;
+            this.music = this.createAudio(
+                'sounds/تامر حسني - كل سنة وانت طيب بدون موسيقى(360P).mp4',
+                'fallback-music'
+            );
             
-            // ضبط خصائص الأصوات
-            Object.values(this.sounds).forEach(sound => {
-                sound.preload = 'auto';
-                sound.crossOrigin = 'anonymous';
-            });
+            if (this.music) {
+                this.music.loop = true;
+                this.music.volume = 0;
+            }
             
-            this.music.preload = 'auto';
-            this.music.crossOrigin = 'anonymous';
+            console.log('✅ صوتيات جاهزة تقريبًا');
             
-            // انتظار تحميل الصوتيات
             return new Promise((resolve) => {
-                let loaded = 0;
-                const total = 3; // giftSound + celebrationSound + music
-                
-                const checkLoaded = () => {
-                    loaded++;
-                    console.log(`📊 تحميل الصوت: ${loaded}/${total}`);
-                    
-                    if (loaded >= total) {
-                        console.log('✅ الصوتيات جاهزة تقريبًا');
-                        resolve();
-                    }
-                };
-                
-                // متابعة تحميل الملفات الرئيسية فقط
-                this.sounds['giftSound'].addEventListener('canplaythrough', checkLoaded);
-                this.sounds['celebrationSound'].addEventListener('canplaythrough', checkLoaded);
-                this.music.addEventListener('canplaythrough', checkLoaded);
-                
-                this.sounds['giftSound'].addEventListener('error', (e) => {
-                    console.warn('⚠️ gift-open.mp3 قد لا يكون موجودًا:', e);
-                    checkLoaded();
-                });
-                
-                this.sounds['celebrationSound'].addEventListener('error', (e) => {
-                    console.warn('⚠️ celebration.mp3 قد لا يكون موجودًا:', e);
-                    checkLoaded();
-                });
-                
-                this.music.addEventListener('error', (e) => {
-                    console.warn('⚠️ ملف الموسيقى قد لا يكون موجودًا:', e);
-                    console.log('💡 تأكد أن اسم الملف: "تامر حسني - كل سنة وانت طيب بدون موسيقى(360P).mp4"');
-                    checkLoaded();
-                });
-                
-                // بدء تحميل الملفات
-                this.sounds['giftSound'].load();
-                this.sounds['celebrationSound'].load();
-                this.music.load();
-                
-                // وقت انتظار أقصى 8 ثواني
+                // انتظار قصير ثم المتابعة
                 setTimeout(() => {
-                    if (loaded < total) {
-                        console.log(`⚠️ تحميل ${total - loaded} ملفات استغرق وقتًا طويلاً`);
-                        resolve();
-                    }
-                }, 8000);
+                    console.log('🎵 الصوتيات جاهزة للاستخدام');
+                    resolve();
+                }, 1000);
             });
         } catch (error) {
-            console.log('❌ خطأ في تحميل الصوتيات:', error);
+            console.log('⚠️ بعض الصوتيات قد لا تعمل:', error);
             return Promise.resolve();
         }
     }
 
-    activateAudio() {
-        if (!this.audioEnabled) {
-            this.audioEnabled = true;
-            console.log('✅ تفعيل الصوت');
-            
-            // تشغيل موسيقى خافتة للتأكد من عمل الصوت
-            const testSound = new Audio();
-            testSound.volume = 0.001;
-            testSound.play().then(() => {
-                console.log('✅ الصوت مفعل في المتصفح');
-                testSound.pause();
-            }).catch(e => {
-                console.log('⚠️ قد تحتاج إلى تفعيل الصوت يدويًا:', e);
-            });
-        }
-    }
-
-    playSound(soundName, volume = 1) {
-        if (this.isMuted || !this.audioEnabled) {
-            console.log(`🔇 الصوت مكتوم أو غير مفعل: ${soundName}`);
-            return null;
-        }
-        
+    createAudio(src, fallbackName) {
         try {
-            let sound;
+            const audio = new Audio();
+            audio.src = src;
+            audio.preload = 'auto';
+            audio.crossOrigin = 'anonymous';
             
-            if (this.sounds[soundName] && soundName !== 'hoverSound' && soundName !== 'transitionSound' && soundName !== 'popSound') {
-                // نسخ الملفات المحملة
-                sound = this.sounds[soundName].cloneNode();
-            } else {
-                // إنشاء أصوات افتراضية
-                sound = new Audio();
-                
-                if (soundName === 'hoverSound') {
-                    // صوت تردد بسيط للتفاعل
-                    this.createBeepSound(sound, 800, 0.05);
-                } else if (soundName === 'transitionSound') {
-                    // صوت انتقالي
-                    this.createBeepSound(sound, 1200, 0.1);
-                } else if (soundName === 'popSound') {
-                    // صوت فرقعة
-                    this.createPopSound(sound);
-                }
-            }
+            audio.addEventListener('error', (e) => {
+                console.warn(`⚠️ ملف ${src} غير موجود، استخدام بديل`);
+                this.useFallbackSound(audio, fallbackName);
+            });
             
-            sound.volume = Math.min(volume, this.volume);
-            
-            const playPromise = sound.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    if (e.name === 'NotAllowedError') {
-                        console.log(`🔔 تحتاج إلى تفاعل للموسيقى: ${soundName}`);
-                    }
-                });
-            }
-            
-            console.log(`🔊 تشغيل: ${soundName}`);
-            return sound;
+            audio.load();
+            return audio;
         } catch (error) {
-            console.log(`⚠️ خطأ في ${soundName}:`, error);
-            return null;
+            console.log(`❌ خطأ في إنشاء ${src}:`, error);
+            return this.createFallbackSound(1000, 0.2);
         }
     }
 
-    createBeepSound(audioElement, frequency, duration) {
-        // إنشاء صوت بسيط باستخدام Web Audio API إن أمكن
+    useFallbackSound(audio, fallbackName) {
+        if (fallbackName === 'fallback-gift') {
+            this.createBeepSound(audio, 1500, 0.5, 'sine');
+        } else if (fallbackName === 'fallback-celebration') {
+            this.createBeepSound(audio, 800, 1, 'square');
+        } else if (fallbackName === 'fallback-music') {
+            // موسيقى خلفية بسيطة
+            this.createBackgroundMusic(audio);
+        }
+    }
+
+    createFallbackSound(frequency, duration) {
+        const audio = new Audio();
+        this.createBeepSound(audio, frequency, duration, 'sine');
+        return audio;
+    }
+
+    createBeepSound(audioElement, frequency, duration, type = 'sine') {
         try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
@@ -959,35 +1142,130 @@ class AudioManager {
             gainNode.connect(audioContext.destination);
             
             oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
+            oscillator.type = type;
             
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
             
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + duration);
+            oscillator.start(now);
+            oscillator.stop(now + duration);
             
-            // تحويل إلى MediaStream وإضافته للعنصر الصوتي
+            // تحويل إلى MediaStream
             const destination = audioContext.createMediaStreamDestination();
             oscillator.connect(destination);
             
             audioElement.srcObject = destination.stream;
         } catch (e) {
-            console.log('⚠️ Web Audio API غير متاح، استخدام صوت افتراضي');
+            console.log('⚠️ Web Audio API غير متاح');
         }
     }
 
-    createPopSound(audioElement) {
-        this.createBeepSound(audioElement, 200, 0.1);
+    createBackgroundMusic(audioElement) {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator1 = audioContext.createOscillator();
+            const oscillator2 = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator1.connect(gainNode);
+            oscillator2.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator1.frequency.value = 440; // نت A
+            oscillator2.frequency.value = 550; // نت C#
+            oscillator1.type = 'sine';
+            oscillator2.type = 'triangle';
+            
+            // إيقاع بسيط
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0.1, now);
+            
+            // نمط إيقاعي بسيط
+            const pattern = [0.1, 0.05, 0.1, 0.05];
+            pattern.forEach((value, index) => {
+                gainNode.gain.setValueAtTime(value, now + index * 0.5);
+            });
+            
+            oscillator1.start(now);
+            oscillator2.start(now);
+            oscillator1.stop(now + 2);
+            oscillator2.stop(now + 2);
+            
+            // تكرار
+            setInterval(() => {
+                this.createBackgroundMusic(audioElement);
+            }, 2000);
+            
+            const destination = audioContext.createMediaStreamDestination();
+            oscillator1.connect(destination);
+            oscillator2.connect(destination);
+            
+            audioElement.srcObject = destination.stream;
+        } catch (e) {
+            console.log('⚠️ لا يمكن إنشاء موسيقى خلفية');
+        }
     }
 
-    playMusic(volume = 0.4) {
+    activateAudio() {
+        if (!this.audioEnabled) {
+            this.audioEnabled = true;
+            console.log('✅ تفعيل الصوت');
+            
+            // تشغيل موسيقى خافتة جداً للتأكد
+            const testSound = new Audio();
+            testSound.volume = 0.001;
+            
+            testSound.play().then(() => {
+                console.log('✅ الصوت مفعل في المتصفح');
+                testSound.pause();
+            }).catch(e => {
+                console.log('⚠️ قد تحتاج إلى تفعيل الصوت يدويًا في المتصفح');
+            });
+        }
+    }
+
+    playSound(soundName, volume = 1) {
+        if (this.isMuted || !this.audioEnabled) {
+            return null;
+        }
+        
+        try {
+            let sound;
+            
+            if (this.sounds[soundName]) {
+                sound = this.sounds[soundName].cloneNode();
+            } else {
+                sound = new Audio();
+            }
+            
+            sound.volume = Math.min(volume, this.volume);
+            sound.currentTime = 0;
+            
+            const playPromise = sound.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    if (e.name === 'NotAllowedError') {
+                        console.log(`🔔 يحتاج تفعيل الصوت: ${soundName}`);
+                    }
+                });
+            }
+            
+            return sound;
+        } catch (error) {
+            console.log(`⚠️ خطأ في تشغيل ${soundName}:`, error);
+            return null;
+        }
+    }
+
+    playMusic(volume = 0.3) {
         if (this.isMuted || !this.music || !this.audioEnabled) {
-            console.log('🔇 الموسيقى مكتومة أو غير جاهزة');
             return;
         }
         
         try {
+            this.musicVolume = volume;
             this.music.volume = Math.min(volume, this.volume);
             this.music.currentTime = 0;
             
@@ -996,24 +1274,9 @@ class AudioManager {
             if (playPromise !== undefined) {
                 playPromise.then(() => {
                     console.log('🎵 موسيقى تامر حسني تشتغل');
-                    window.birthdayExperience.isMusicPlaying = true;
+                    this.currentMusic = this.music;
                 }).catch(e => {
                     console.log('❌ فشل تشغيل الموسيقى:', e);
-                    
-                    if (e.name === 'NotAllowedError') {
-                        console.log('🔔 المتصفح يمنع التشغيل التلقائي.');
-                        console.log('💡 اضغط على أي مكان في الصفحة لتفعيل الموسيقى');
-                        
-                        // إضافة مستمع لتفاعل المستخدم
-                        document.addEventListener('click', () => {
-                            this.music.play().then(() => {
-                                console.log('✅ الموسيقى شُغّلت بعد التفاعل');
-                                window.birthdayExperience.isMusicPlaying = true;
-                            }).catch(e2 => {
-                                console.log('❌ فشل بعد التفاعل:', e2);
-                            });
-                        }, { once: true });
-                    }
                 });
             }
         } catch (error) {
@@ -1021,20 +1284,27 @@ class AudioManager {
         }
     }
 
+    setMusicVolume(volume) {
+        this.musicVolume = volume;
+        if (this.music && this.currentMusic === this.music) {
+            this.music.volume = Math.min(volume, this.volume);
+        }
+    }
+
     fadeOutMusic(duration = 3000) {
-        if (!this.music) return;
+        if (!this.music || this.currentMusic !== this.music) return;
         
         const startVolume = this.music.volume;
         const fadeStep = startVolume / (duration / 100);
+        
         const fadeInterval = setInterval(() => {
             if (this.music.volume > 0.01) {
                 this.music.volume -= fadeStep;
             } else {
                 this.music.pause();
                 this.music.currentTime = 0;
-                window.birthdayExperience.isMusicPlaying = false;
+                this.currentMusic = null;
                 clearInterval(fadeInterval);
-                console.log('🔇 الموسيقى توقفت');
             }
         }, 100);
     }
@@ -1043,19 +1313,23 @@ class AudioManager {
         this.volume = volume;
         
         if (!this.isMuted && this.audioEnabled) {
+            // تحديث مستوى أصوات المؤثرات
             Object.values(this.sounds).forEach(sound => {
-                if (sound.volume) sound.volume = volume;
+                if (sound.volume !== undefined) {
+                    sound.volume = volume;
+                }
             });
             
-            if (this.music && window.birthdayExperience.isMusicPlaying) {
-                this.music.volume = Math.min(0.4, volume);
+            // تحديث مستوى الموسيقى إذا كانت مشتغلة
+            if (this.music && this.currentMusic === this.music) {
+                this.music.volume = Math.min(this.musicVolume, volume);
             }
         }
         
         const slider = document.getElementById('volumeSlider');
-        if (slider) slider.value = volume;
-        
-        console.log('🔊 مستوى الصوت:', volume);
+        if (slider) {
+            slider.value = volume;
+        }
     }
 
     muteAll() {
@@ -1069,8 +1343,6 @@ class AudioManager {
             this.music.muted = true;
             this.music.pause();
         }
-        
-        console.log('🔇 كتم كل الأصوات');
     }
 
     unmuteAll() {
@@ -1078,19 +1350,19 @@ class AudioManager {
         
         Object.values(this.sounds).forEach(sound => {
             sound.muted = false;
-            if (sound.volume) sound.volume = this.volume;
+            if (sound.volume !== undefined) {
+                sound.volume = this.volume;
+            }
         });
         
-        if (this.music && window.birthdayExperience.isMusicPlaying && this.audioEnabled) {
+        if (this.music && this.currentMusic === this.music && this.audioEnabled) {
             this.music.muted = false;
-            this.music.volume = Math.min(0.4, this.volume);
+            this.music.volume = Math.min(this.musicVolume, this.volume);
             
             this.music.play().catch(e => {
                 console.log('❌ فشل استئناف الموسيقى:', e);
             });
         }
-        
-        console.log('🔊 إلغاء كتم الأصوات');
     }
 
     stopAll() {
@@ -1102,39 +1374,102 @@ class AudioManager {
         if (this.music) {
             this.music.pause();
             this.music.currentTime = 0;
-            window.birthdayExperience.isMusicPlaying = false;
+            this.currentMusic = null;
         }
-        
-        console.log('⏹️ توقف كل الأصوات');
     }
 }
 
 // ============================================
-// بدء التجربة
+// بدء التجربة عند تحميل الصفحة
 // ============================================
 window.addEventListener('load', () => {
     console.log('🎉 بدء تحميل هدية عيد الميلاد...');
-    console.log('✨ إعدادات الصوت:');
-    console.log('- celebration.mp3: 5 ثواني فقط');
-    console.log('- موسيقى تامر حسني: تبدأ في المشهد 4 وتستمر');
-    console.log('- المشهد 5: موسيقى فقط (بدون celebration.mp3)');
+    console.log('✨ المميزات:');
+    console.log('- توقيتات تلقائية بين المشاهد');
+    console.log('- موسيقى تامر حسني في المشهد 4 و5');
+    console.log('- تفاعل مع البالونات والهدايا');
+    console.log('- مؤشرات صوتية وتقدم');
     
     // فحص دعم الصوت
     if (!checkAudioSupport()) {
         const indicator = document.getElementById('audioIndicator');
         if (indicator) {
-            indicator.innerHTML = '<span class="audio-status">⚠️ مشكلة في الصوت</span>';
+            indicator.innerHTML = '<span class="audio-status">⚠️ تأكد من تفعيل الصوت</span>';
             indicator.classList.add('show');
         }
     }
     
+    // إنشاء وتشغيل التجربة
     window.birthdayExperience = new BirthdayExperience();
     
-    // إضافة تفاعل لتفعيل الصوت
-    document.body.addEventListener('click', function initAudio() {
-        if (window.birthdayExperience && window.birthdayExperience.audioManager) {
+    // تفعيل الصوت عند أول نقر
+    let audioActivated = false;
+    document.addEventListener('click', function initAudio() {
+        if (!audioActivated && window.birthdayExperience && window.birthdayExperience.audioManager) {
             window.birthdayExperience.audioManager.activateAudio();
+            audioActivated = true;
+            
+            const indicator = document.getElementById('audioIndicator');
+            if (indicator) {
+                indicator.innerHTML = '<span class="audio-status">✅ الصوت مفعل! استمتعي بالتجربة 🎵</span>';
+                setTimeout(() => {
+                    indicator.innerHTML = '<span class="audio-status">🎵 جاهز للفرحة!</span>';
+                }, 2000);
+            }
         }
-        document.body.removeEventListener('click', initAudio);
-    }, { once: true });
+    }, { once: false });
+});
+
+// ============================================
+// التأثيرات الإضافية
+// ============================================
+
+// تأثيرات النوتات الموسيقية
+function createMusicNotes() {
+    const container = document.querySelector('.music-notes-container');
+    if (!container) return;
+    
+    setInterval(() => {
+        const note = document.createElement('div');
+        note.className = 'music-note';
+        note.innerHTML = ['🎵', '🎶', '🎼'][Math.floor(Math.random() * 3)];
+        note.style.left = `${Math.random() * 100}%`;
+        note.style.fontSize = `${Math.random() * 20 + 15}px`;
+        note.style.opacity = '0.7';
+        note.style.animationDuration = `${Math.random() * 3 + 2}s`;
+        container.appendChild(note);
+        
+        setTimeout(() => {
+            if (note.parentNode) note.remove();
+        }, 4000);
+    }, 1000);
+}
+
+// تشغيل تأثيرات النوتات عندما تكون الموسيقى شغالة
+setTimeout(() => {
+    createMusicNotes();
+}, 3000);
+
+// تحسينات إضافية للتفاعل
+document.addEventListener('DOMContentLoaded', () => {
+    // إضافة تأثيرات عند تمرير الماوس على العناصر التفاعلية
+    const interactiveElements = document.querySelectorAll('.balloon, .gift-wrapper, .celebration-action, .next-scene-btn, .skip-btn, .reread-btn, .restart-button');
+    
+    interactiveElements.forEach(element => {
+        element.addEventListener('mouseenter', () => {
+            element.style.transform = 'translateY(-2px)';
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            element.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // تأثير اهتزاز خفيف لعناصر معينة
+    setInterval(() => {
+        const hearts = document.querySelectorAll('.celebration-heart, .heartbeat-emoji');
+        hearts.forEach(heart => {
+            heart.style.transform = `scale(${1 + Math.sin(Date.now() / 500) * 0.1})`;
+        });
+    }, 50);
 });
