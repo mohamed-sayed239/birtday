@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عيد ميلاد آية 💝 - كل سنة وانتِ طيبة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Changa:wght@300;400;500;600&family=El+Messiri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-text">
+            <span id="loadingMessage">بيجهزوا الهدايا 🎁</span>
+        </div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+        <div class="sound-wave" id="loadingWave">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+        </div>
+    </div>
+
+    <!-- Scene 1: Opening -->
+    <div id="scene1" class="scene active">
+        <div class="subtle-glow"></div>
+        <div class="name-reveal">
+            <div class="name-letter" data-letter="آ">آ</div>
+            <div class="name-letter" data-letter="ي">ي</div>
+            <div class="name-letter" data-letter="ة">ة</div>
+        </div>
+        <div class="opening-text">كل سنة وأنتِ أجمل ما في حياتي... ✨</div>
+    </div>
+
+    <!-- Scene 2: Age Transition -->
+    <div id="scene2" class="scene">
+        <div class="subtle-glow"></div>
+        <div class="age-container">
+            <div class="year-line"></div>
+            <div id="age17" class="age-number">17</div>
+            <div id="age18" class="age-number">18</div>
+            <div class="transition-message" id="transitionMessage">
+                سنة تذهب.. وسنة تأتي بالخير والفرح 🌸
+            </div>
+            <div class="age-label">عمر جديد يبدأ.. وقصة جديدة تكتب ✨</div>
+        </div>
+    </div>
+
+    <!-- Scene 3: The Gift -->
+    <div id="scene3" class="scene">
+        <div class="subtle-glow"></div>
+        <div class="gift-wrapper" id="giftWrapper">
+            <div class="gift-light" id="giftLight"></div>
+            <div class="gift-box" id="giftBox">
+                <div class="gift-lid"></div>
+                <div class="gift-ribbon"></div>
+                <div class="gift-ribbon vertical"></div>
+                <div class="gift-bow"></div>
+            </div>
+            <div class="gift-sparkles" id="giftSparkles"></div>
+        </div>
+        <div class="gift-instruction">انقري على الهدية 💝</div>
+        <div class="hint-text">المفاجأة الحلوة جواها 😊</div>
+    </div>
+
+    <!-- Scene 4: Celebration -->
+    <div id="scene4" class="scene">
+        <div class="celebration-container">
+            <div class="celebration-particles" id="celebrationParticles"></div>
+            <div class="celebration-text">كل سنة وانتي طيبة 💖</div>
+            <div class="celebration-heart heartbeat">💖</div>
+            <div class="message-flow" id="messageFlow">
+                <div class="line">كل سنة وأنتِ نور حياتي يا أجمل آية في الدنيا...</div>
+                <div class="line">عقبال مليون سنة مليانة فرحة وضحك وحاجات حلوة كتير،</div>
+                <div class="line">وتفضلي دايمًا بقلبك الطيب اللي بيهون أي حاجة...</div>
+                <div class="line">وإن شاء الله نفضل مع بعض على طول،</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scene 5: Message -->
+    <div id="scene5" class="scene">
+        <div class="subtle-glow"></div>
+        <div class="message-card">
+            <div class="message-line">كل سنة وأنتِ طيبة يا أجمل آية في الدنيا... <span class="message-emoji">🌸</span></div>
+            <div class="message-line">عقبال مليون سنة مليانة فرحة وضحك وحاجات حلوة كتير،</div>
+            <div class="message-line">وتفضلي دايمًا بقلبك الطيب اللي بيهون أي حاجة... <span class="message-emoji">❤️</span></div>
+            <div class="message-line">وإن شاء الله نفضل مع بعض على طول،</div>
+            <div class="message-line highlight">كل سنة وأنتِ أحلى وأغلى وأجمل واحدة! <span class="message-emoji">🌷✨</span></div>
+        </div>
+        <div class="floating-hearts" id="floatingHearts"></div>
+         <button class="skip " id="skipButton">التالي  </button>
+    </div>
+
+    <!-- Scene 6: Ending -->
+    <div id="scene6" class="scene">
+        <div class="ending-stars" id="endingStars"></div>
+        <div class="subtle-glow"></div>
+        <div class="ending-text">Happy Birthday Ayah</div>
+        <div class="ending-emoji">🎉🎂🎁</div>
+        <div class="final-message">أتمنى لكِ سنة مليانة سعادة ونجاح ✨</div>
+        <button class="restart-button" id="restartButton">✨ أشاهدها مرة أخرى</button>
+    </div>
+
+    <!-- Audio Controls -->
+    <div class="audio-controls">
+        <button class="mute-button" id="muteButton">
+            <span class="sound-icon">🔈</span>
+        </button>
+        <div class="volume-slider">
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.7">
+        </div>
+        <div class="sound-wave" id="soundWave">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+        </div>
+    </div>
+
+    <!-- Audio Indicator -->
+    <div class="audio-indicator" id="audioIndicator">
+        <span class="audio-status">🔇 الصوت متوقف</span>
+    </div>
+
+    <!-- Skip Button -->
+    <button class="skip-button" id="skipButton">تخطي المشهد</button>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-dot active" data-scene="1" data-title="البداية"></div>
+        <div class="progress-dot" data-scene="2" data-title="عمر جديد"></div>
+        <div class="progress-dot" data-scene="3" data-title="الهدية"></div>
+        <div class="progress-dot" data-scene="4" data-title="الاحتفال"></div>
+        <div class="progress-dot" data-scene="5" data-title="الرسالة"></div>
+        <div class="progress-dot" data-scene="6" data-title="النهاية"></div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="backgroundMusic" preload="auto" loop></audio>
+    <audio id="giftSound" preload="auto"></audio>
+    <audio id="celebrationSound" preload="auto"></audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
